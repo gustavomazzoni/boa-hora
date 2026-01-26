@@ -1,38 +1,23 @@
 import { getDiffMinutes } from "@/helpers/time";
+import { Contraction } from "@/services/contractions";
 
-export const oldCheckHospitalRule = (list) => {
-  if (list.length < 3) return;
+// 5-1-1 Rule thresholds with tolerance
+const MAX_FREQUENCY_MINUTES = 5.5; // Contractions should be ~5 mins apart (with 30s tolerance)
+const MIN_DURATION_SECONDS = 45; // Contractions should last ~1 min (with 15s tolerance)
+const PATTERN_DURATION_MS = 60 * 60 * 1000; // Pattern must persist for 1 hour (3600000 ms)
 
-  // Get last 3 contractions
-  const recent = list.slice(0, 3);
-
-  // Calculate Average Duration
-  const avgDuration =
-    recent.reduce((sum, item) => sum + item.duration, 0) / recent.length;
-
-  // Calculate Average Frequency (Time between starts)
-  // Note: Frequency for item[0] is (item[0].start - item[1].start)
-  let totalFreq = 0;
-  let count = 0;
-  for (let i = 0; i < recent.length - 1; i++) {
-    const startCurrent = new Date(recent[i].startTime);
-    const startNext = new Date(recent[i + 1].startTime);
-    const diffMinutes = (startCurrent - startNext) / 1000 / 60;
-    totalFreq += diffMinutes;
-    count++;
-  }
-  const avgFreq = totalFreq / count;
-
-  // Rule: Freq <= 5 mins AND Duration >= 45 seconds (approx 1 min)
-  return avgFreq <= 5.5 && avgDuration >= 45;
-};
-
-// --- LOGIC: 5-1-1 Rule ---
-export const checkHospitalRule = (list): boolean => {
-  if (list.length < 3) return false;
+/**
+ * Checks the 5-1-1 Hospital Rule:
+ * - Contractions are 5 minutes apart (frequency)
+ * - Each lasting 1 minute (duration)
+ * - Pattern persists for 1 hour
+ *
+ * Returns true if it's time to go to the hospital.
+ */
+export const checkHospitalRule = (list: Contraction[]): boolean => {
+  if (!list || list.length < 3) return false;
 
   let validStreakDurationMs = 0;
-  let patternValid = true;
 
   // Scan backwards from the newest contraction (index 0)
   for (let i = 0; i < list.length - 1; i++) {
@@ -42,27 +27,27 @@ export const checkHospitalRule = (list): boolean => {
     const freqMinutes = getDiffMinutes(current.startTime, older.startTime);
     const durationSeconds = current.duration;
 
-    // 5-1-1 Criteria with slight tolerance:
-    // Freq <= 5.5 mins AND Duration >= 45 secs
-    // Also, breaks > 60 mins obviously break the pattern (handled by freq check)
-    if (freqMinutes <= 5.5 && durationSeconds >= 45) {
-      // This gap is part of a valid pattern.
-      // Add time to streak (Time from older start to current start)
-      const gapMs = new Date(current.startTime) - new Date(older.startTime);
+    // 5-1-1 Criteria with tolerance:
+    // Frequency <= 5.5 mins (5 mins + 30s tolerance)
+    // Duration >= 45 secs (1 min - 15s tolerance)
+    if (freqMinutes <= MAX_FREQUENCY_MINUTES && durationSeconds >= MIN_DURATION_SECONDS) {
+      // This gap is part of a valid pattern
+      // Add time to streak (time from older start to current start)
+      const gapMs =
+        new Date(current.startTime).getTime() -
+        new Date(older.startTime).getTime();
       validStreakDurationMs += gapMs;
     } else {
-      // Pattern broken
-      patternValid = false;
+      // Pattern broken - stop checking
       break;
     }
 
-    // Check if we have hit the 1 Hour threshold
-    // 1 hour = 60 * 60 * 1000 = 3600000 ms
-    if (validStreakDurationMs >= 3600000) {
+    // Check if we have hit the 1 hour threshold
+    if (validStreakDurationMs >= PATTERN_DURATION_MS) {
       return true;
     }
   }
 
-  // If loop finishes or breaks without hitting 1 hour
+  // Pattern did not persist for 1 hour
   return false;
 };
