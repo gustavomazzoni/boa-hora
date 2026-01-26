@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   formatDate,
@@ -58,7 +57,9 @@ export default function App() {
       timerRef.current = setInterval(() => {
         const now = new Date();
         const start = new Date(currentStart);
-        const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
+        const diffInSeconds = Math.floor(
+          (now.getTime() - start.getTime()) / 1000,
+        );
 
         // Auto-stop at 90 seconds
         if (diffInSeconds >= MAX_CONTRACTION_DURATION_SECONDS) {
@@ -97,6 +98,7 @@ export default function App() {
     try {
       const savedData = await getData();
       const savedState = await getState();
+      let checkedRule = false;
 
       if (savedData) {
         setContractions(savedData);
@@ -109,11 +111,12 @@ export default function App() {
             // Auto-stop and log the contraction with 90-second duration
             const newContraction = createContraction(
               savedState.currentStart,
-              new Date().toISOString()
+              new Date().toISOString(),
             );
             const updatedList = [newContraction, ...(savedData || [])];
             setContractions(updatedList);
             setHospitalAlert(checkHospitalRule(updatedList));
+            checkedRule = true;
           } else {
             // Resume timer if app was closed during contraction
             setCurrentStart(savedState.currentStart);
@@ -121,6 +124,8 @@ export default function App() {
           }
         }
       }
+
+      if (!checkedRule) setHospitalAlert(checkHospitalRule(savedData));
     } catch (e) {
       console.error("Failed to load data", e);
     }
@@ -128,7 +133,10 @@ export default function App() {
 
   // --- LOGIC: Stop Contraction ---
   const stopContraction = (startTime: string) => {
-    const newContraction = createContraction(startTime, new Date().toISOString());
+    const newContraction = createContraction(
+      startTime,
+      new Date().toISOString(),
+    );
 
     // Avoid accidental taps (ignore < 2 seconds)
     if (newContraction.duration < 2) {
@@ -308,10 +316,7 @@ export default function App() {
         colors={["#6EE7B7", "#34D399"]}
         style={styles.topContainer}
       >
-        <SafeAreaView>
-          {/* {renderHeader()} */}
-          <View style={styles.contentContainer}>{renderStatusCard()}</View>
-        </SafeAreaView>
+        <View style={styles.contentContainer}>{renderStatusCard()}</View>
       </LinearGradient>
 
       {/* Main List Area */}
@@ -395,22 +400,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  headerTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    letterSpacing: 1,
-  },
-  headerIconsRight: {
-    flexDirection: "row",
   },
   contentContainer: {
     paddingHorizontal: 20,
