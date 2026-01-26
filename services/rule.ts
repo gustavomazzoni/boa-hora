@@ -30,7 +30,10 @@ export const checkHospitalRule = (list: Contraction[]): boolean => {
     // 5-1-1 Criteria with tolerance:
     // Frequency <= 5.5 mins (5 mins + 30s tolerance)
     // Duration >= 45 secs (1 min - 15s tolerance)
-    if (freqMinutes <= MAX_FREQUENCY_MINUTES && durationSeconds >= MIN_DURATION_SECONDS) {
+    if (
+      freqMinutes <= MAX_FREQUENCY_MINUTES &&
+      durationSeconds >= MIN_DURATION_SECONDS
+    ) {
       // This gap is part of a valid pattern
       // Add time to streak (time from older start to current start)
       const gapMs =

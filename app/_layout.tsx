@@ -1,14 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import "react-native-reanimated";
 
 export default function RootLayout() {
   const HeaderRightIcon = () => (
-    <TouchableOpacity onPress={() => alert("Star icon pressed!")}>
-      <Ionicons name="settings-outline" size={24} color="white" />
-    </TouchableOpacity>
+    <Pressable
+      onPress={() => alert("Star icon pressed!")}
+      style={styles.iconButton}
+    >
+      <Ionicons name="information-circle-outline" size={24} color="#34D399" />
+    </Pressable>
   );
 
   return (
@@ -16,16 +19,16 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack
         screenOptions={{
-          headerStyle: styles.container,
-          // headerTintColor: "#fff", // Changes the color of the back button and title
+          headerStyle: styles.header,
           headerTitleStyle: styles.headerTitle,
+          headerShadowVisible: false, // Removes the border/shadow
         }}
       >
         <Stack.Screen
           name="index"
           options={{
-            title: "Contrações",
-            headerRight: () => <HeaderRightIcon />,
+            title: "BoaHora | Monitore suas Contrações",
+            // headerRight: () => <HeaderRightIcon />,
           }}
         />
       </Stack>
@@ -34,32 +37,18 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#6EE7B7", //, "#34D399"],
-    borderBottomColor: "#6EE7B7",
-  },
-  topContainer: {
-    paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    backgroundColor: "#6EE7B7", //, "#34D399"],
+    borderBottomWidth: 0,
   },
   headerTitle: {
     color: "white",
     // fontSize: 18,
     fontWeight: "bold",
     // letterSpacing: 1,
+  },
+  iconButton: {
+    padding: 6,
+    backgroundColor: "transparent",
   },
 });
