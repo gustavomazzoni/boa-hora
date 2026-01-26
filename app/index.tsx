@@ -23,7 +23,10 @@ import {
 import {
   Contraction,
   countLastHourContractions,
+  createContraction,
   deleteContraction,
+  MAX_CONTRACTION_DURATION_SECONDS,
+  shouldAutoStop,
 } from "@/services/contractions";
 import { getData, saveData } from "@/services/data";
 import { checkHospitalRule } from "@/services/rule";
@@ -49,14 +52,20 @@ export default function App() {
     loadData();
   }, []);
 
-  // 2. Timer Interval Logic
+  // 2. Timer Interval Logic with 90-second auto-stop
   useEffect(() => {
-    if (isContractionActive) {
+    if (isContractionActive && currentStart) {
       timerRef.current = setInterval(() => {
         const now = new Date();
         const start = new Date(currentStart);
-        const diffInSeconds = Math.floor((now - start) / 1000);
-        setTimer(diffInSeconds);
+        const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
+
+        // Auto-stop at 90 seconds
+        if (diffInSeconds >= MAX_CONTRACTION_DURATION_SECONDS) {
+          stopContraction(currentStart);
+        } else {
+          setTimer(diffInSeconds);
+        }
       }, 1000);
     } else {
       clearInterval(timerRef.current);
@@ -95,9 +104,21 @@ export default function App() {
 
       if (savedState) {
         if (savedState.isContractionActive && savedState.currentStart) {
-          // Resume timer if app was closed during contraction
-          setCurrentStart(savedState.currentStart);
-          setIsContractionActive(true);
+          // Check if contraction should be auto-stopped (>= 90 seconds elapsed)
+          if (shouldAutoStop(savedState.currentStart)) {
+            // Auto-stop and log the contraction with 90-second duration
+            const newContraction = createContraction(
+              savedState.currentStart,
+              new Date().toISOString()
+            );
+            const updatedList = [newContraction, ...(savedData || [])];
+            setContractions(updatedList);
+            setHospitalAlert(checkHospitalRule(updatedList));
+          } else {
+            // Resume timer if app was closed during contraction
+            setCurrentStart(savedState.currentStart);
+            setIsContractionActive(true);
+          }
         }
       }
     } catch (e) {
@@ -105,42 +126,34 @@ export default function App() {
     }
   };
 
+  // --- LOGIC: Stop Contraction ---
+  const stopContraction = (startTime: string) => {
+    const newContraction = createContraction(startTime, new Date().toISOString());
+
+    // Avoid accidental taps (ignore < 2 seconds)
+    if (newContraction.duration < 2) {
+      setIsContractionActive(false);
+      setCurrentStart(null);
+      return;
+    }
+
+    const updatedList = [newContraction, ...contractions];
+    setContractions(updatedList);
+    setIsContractionActive(false);
+    setCurrentStart(null);
+
+    setHospitalAlert(checkHospitalRule(updatedList));
+  };
+
   // --- LOGIC: Button Press ---
   const timeContraction = () => {
-    const now = new Date();
-
     if (!isContractionActive) {
       // START Contraction
       setIsContractionActive(true);
-      setCurrentStart(now.toISOString());
-    } else {
+      setCurrentStart(new Date().toISOString());
+    } else if (currentStart) {
       // STOP Contraction
-      const endTime = now.toISOString();
-      const startTime = currentStart;
-      const duration = Math.floor(
-        (new Date(endTime) - new Date(startTime)) / 1000,
-      );
-
-      // Avoid accidental taps (ignore < 2 seconds)
-      if (duration < 2) {
-        setIsContractionActive(false);
-        setCurrentStart(null);
-        return;
-      }
-
-      const newContraction: Contraction = {
-        id: Date.now().toString(),
-        startTime,
-        endTime,
-        duration,
-      };
-
-      const updatedList = [newContraction, ...contractions];
-      setContractions(updatedList);
-      setIsContractionActive(false);
-      setCurrentStart(null);
-
-      setHospitalAlert(checkHospitalRule(updatedList));
+      stopContraction(currentStart);
     }
   };
 

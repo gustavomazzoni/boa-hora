@@ -1,7 +1,11 @@
 import {
   deleteContraction,
   countLastHourContractions,
+  createContraction,
+  getEffectiveDuration,
+  shouldAutoStop,
   Contraction,
+  MAX_CONTRACTION_DURATION_SECONDS,
 } from "@/services/contractions";
 
 describe("deleteContraction", () => {
@@ -255,5 +259,182 @@ describe("countLastHourContractions", () => {
     const result = countLastHourContractions(contractions);
 
     expect(result).toBe(1);
+  });
+});
+
+describe("getEffectiveDuration", () => {
+  it("should return actual duration when under 90 seconds", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:00:45.000Z"; // 45 seconds later
+
+    const result = getEffectiveDuration(startTime, endTime);
+
+    expect(result).toBe(45);
+  });
+
+  it("should return exactly 90 seconds when duration is exactly 90 seconds", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:01:30.000Z"; // 90 seconds later
+
+    const result = getEffectiveDuration(startTime, endTime);
+
+    expect(result).toBe(90);
+  });
+
+  it("should cap duration at 90 seconds when actual duration exceeds 90 seconds", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:05:00.000Z"; // 5 minutes (300 seconds) later
+
+    const result = getEffectiveDuration(startTime, endTime);
+
+    expect(result).toBe(90);
+  });
+
+  it("should cap very long durations at 90 seconds", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T14:00:00.000Z"; // 2 hours later
+
+    const result = getEffectiveDuration(startTime, endTime);
+
+    expect(result).toBe(90);
+  });
+
+  it("should return 0 for same start and end time", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:00:00.000Z";
+
+    const result = getEffectiveDuration(startTime, endTime);
+
+    expect(result).toBe(0);
+  });
+
+  it("should handle milliseconds correctly (floor to seconds)", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:00:30.999Z"; // 30.999 seconds
+
+    const result = getEffectiveDuration(startTime, endTime);
+
+    expect(result).toBe(30);
+  });
+});
+
+describe("createContraction", () => {
+  it("should create contraction with actual duration when under 90 seconds", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:01:00.000Z"; // 60 seconds
+
+    const result = createContraction(startTime, endTime);
+
+    expect(result.startTime).toBe(startTime);
+    expect(result.endTime).toBe(endTime);
+    expect(result.duration).toBe(60);
+    expect(result.id).toBeDefined();
+  });
+
+  it("should cap duration at 90 seconds and adjust endTime", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:05:00.000Z"; // 5 minutes later
+
+    const result = createContraction(startTime, endTime);
+
+    expect(result.startTime).toBe(startTime);
+    expect(result.duration).toBe(90);
+    // endTime should be adjusted to startTime + 90 seconds
+    expect(result.endTime).toBe("2024-01-15T12:01:30.000Z");
+  });
+
+  it("should generate unique IDs", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:01:00.000Z";
+
+    const result1 = createContraction(startTime, endTime);
+    // Small delay to ensure different timestamp
+    const result2 = createContraction(startTime, endTime);
+
+    expect(result1.id).toBeDefined();
+    expect(result2.id).toBeDefined();
+  });
+
+  it("should not modify endTime when duration is exactly 90 seconds", () => {
+    const startTime = "2024-01-15T12:00:00.000Z";
+    const endTime = "2024-01-15T12:01:30.000Z"; // exactly 90 seconds
+
+    const result = createContraction(startTime, endTime);
+
+    expect(result.duration).toBe(90);
+    expect(result.endTime).toBe(endTime);
+  });
+});
+
+describe("shouldAutoStop", () => {
+  const NOW = new Date("2024-01-15T12:00:00.000Z");
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("should return false when less than 90 seconds have elapsed", () => {
+    // Started 60 seconds ago
+    const startTime = "2024-01-15T11:59:00.000Z";
+
+    const result = shouldAutoStop(startTime);
+
+    expect(result).toBe(false);
+  });
+
+  it("should return true when exactly 90 seconds have elapsed", () => {
+    // Started exactly 90 seconds ago
+    const startTime = "2024-01-15T11:58:30.000Z";
+
+    const result = shouldAutoStop(startTime);
+
+    expect(result).toBe(true);
+  });
+
+  it("should return true when more than 90 seconds have elapsed", () => {
+    // Started 2 minutes ago
+    const startTime = "2024-01-15T11:58:00.000Z";
+
+    const result = shouldAutoStop(startTime);
+
+    expect(result).toBe(true);
+  });
+
+  it("should return true when contraction started hours ago", () => {
+    // Started 2 hours ago (user forgot to stop)
+    const startTime = "2024-01-15T10:00:00.000Z";
+
+    const result = shouldAutoStop(startTime);
+
+    expect(result).toBe(true);
+  });
+
+  it("should return false when contraction just started", () => {
+    // Started just now
+    const startTime = "2024-01-15T12:00:00.000Z";
+
+    const result = shouldAutoStop(startTime);
+
+    expect(result).toBe(false);
+  });
+
+  it("should return false at 89 seconds", () => {
+    // Started 89 seconds ago
+    const startTime = "2024-01-15T11:58:31.000Z";
+
+    const result = shouldAutoStop(startTime);
+
+    expect(result).toBe(false);
+  });
+});
+
+describe("MAX_CONTRACTION_DURATION_SECONDS", () => {
+  it("should be 90 seconds", () => {
+    expect(MAX_CONTRACTION_DURATION_SECONDS).toBe(90);
   });
 });
