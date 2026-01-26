@@ -20,7 +20,11 @@ import {
   getDateKey,
   getDiffMinutes,
 } from "@/helpers/time";
-import { Contraction, deleteContraction } from "@/services/contractions";
+import {
+  Contraction,
+  countLastHourContractions,
+  deleteContraction,
+} from "@/services/contractions";
 import { getData, saveData } from "@/services/data";
 import { checkHospitalRule } from "@/services/rule";
 import { getState, saveState } from "@/services/state";
@@ -241,14 +245,10 @@ export default function App() {
     }
 
     // Summary Stats
-    const lastHourCount = contractions.filter((c) => {
-      const diff = getDiffMinutes(new Date().toISOString(), c.startTime);
-      return diff <= 60;
-    }).length;
     return (
       <View style={styles.statsContainer}>
         <Text style={styles.statsTitle}>
-          Última Hora: {lastHourCount} contrações
+          Última Hora: {countLastHourContractions(contractions)} contrações
         </Text>
       </View>
     );

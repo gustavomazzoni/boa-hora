@@ -1,4 +1,8 @@
-import { deleteContraction, Contraction } from "@/services/contractions";
+import {
+  deleteContraction,
+  countLastHourContractions,
+  Contraction,
+} from "@/services/contractions";
 
 describe("deleteContraction", () => {
   const mockContractions: Contraction[] = [
@@ -112,5 +116,144 @@ describe("deleteContraction", () => {
     );
 
     expect(result).toEqual([]);
+  });
+});
+
+describe("countLastHourContractions", () => {
+  const NOW = new Date("2024-01-15T12:00:00.000Z");
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("should count only contractions within the last 60 minutes", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:30:00.000Z", // 30 mins ago - should count
+        endTime: "2024-01-15T11:31:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:00:00.000Z", // 60 mins ago - should count
+        endTime: "2024-01-15T11:01:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T10:59:00.000Z", // 61 mins ago - should NOT count
+        endTime: "2024-01-15T11:00:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = countLastHourContractions(contractions);
+
+    expect(result).toBe(2);
+  });
+
+  it("should return 0 for empty array", () => {
+    const result = countLastHourContractions([]);
+
+    expect(result).toBe(0);
+  });
+
+  it("should return 0 when all contractions are older than 60 minutes", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T10:00:00.000Z", // 2 hours ago
+        endTime: "2024-01-15T10:01:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T09:00:00.000Z", // 3 hours ago
+        endTime: "2024-01-15T09:01:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = countLastHourContractions(contractions);
+
+    expect(result).toBe(0);
+  });
+
+  it("should count all contractions when all are within the last hour", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:50:00.000Z", // 10 mins ago
+        endTime: "2024-01-15T11:51:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:40:00.000Z", // 20 mins ago
+        endTime: "2024-01-15T11:41:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T11:30:00.000Z", // 30 mins ago
+        endTime: "2024-01-15T11:31:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = countLastHourContractions(contractions);
+
+    expect(result).toBe(3);
+  });
+
+  it("should include contraction at exactly 60 minutes ago", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:00:00.000Z", // exactly 60 mins ago
+        endTime: "2024-01-15T11:01:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = countLastHourContractions(contractions);
+
+    expect(result).toBe(1);
+  });
+
+  it("should exclude contraction at 61 minutes ago", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T10:59:00.000Z", // 61 mins ago
+        endTime: "2024-01-15T11:00:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = countLastHourContractions(contractions);
+
+    expect(result).toBe(0);
+  });
+
+  it("should handle contractions from just now", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T12:00:00.000Z", // exactly now (0 mins ago)
+        endTime: "2024-01-15T12:01:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = countLastHourContractions(contractions);
+
+    expect(result).toBe(1);
   });
 });

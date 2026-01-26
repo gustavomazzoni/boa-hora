@@ -1,3 +1,5 @@
+import { getDiffMinutes } from "@/helpers/time";
+
 export interface Contraction {
   id: string;
   startTime: string;
@@ -11,7 +13,7 @@ export interface Contraction {
  */
 export const deleteContraction = (
   contractions: Contraction[],
-  id: string | null | undefined
+  id: string | null | undefined,
 ): Contraction[] => {
   if (!contractions || !Array.isArray(contractions)) {
     return [];
@@ -22,4 +24,13 @@ export const deleteContraction = (
   }
 
   return contractions.filter((c) => c.id !== id);
+};
+
+export const countLastHourContractions = (
+  contractions: Contraction[],
+): number => {
+  return contractions.filter((c) => {
+    const diff = getDiffMinutes(new Date().toISOString(), c.startTime);
+    return diff <= 60;
+  }).length;
 };
