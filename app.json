@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "BoaHora",
-    "slug": "BoaHora",
+    "slug": "boa-hora",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,6 +43,19 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "621f0021-d1f6-4701-9a09-4d1ada00739b"
+      }
+    },
+    "owner": "mazzoni-solutions",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/621f0021-d1f6-4701-9a09-4d1ada00739b"
     }
   }
 }
