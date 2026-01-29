@@ -1,15 +1,20 @@
 {
   "expo": {
-    "name": "BoaHora",
+    "name": "BoaHora | Monitore suas Contrações",
     "slug": "boa-hora",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/ios-light.png",
+    "icon": "./assets/icons/app-icon.png",
     "scheme": "boahora",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "splash": {
+        "image": "./assets/icons/splash-icon-light.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#6EE7B7"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,6 +22,11 @@
         "foregroundImage": "./assets/icons/android-adaptive-icon.png",
         "backgroundImage": "./assets/icons/android-icon-background.png",
         "monochromeImage": "./assets/icons/android-icon-monochrome.png"
+      },
+      "splash": {
+        "image": "./assets/icons/splash-icon-light.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#6EE7B7"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
