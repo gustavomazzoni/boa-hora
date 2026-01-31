@@ -22,7 +22,7 @@ export const Colors = {
     headerGradient: ["#C8AD9E", "#E6CCB2"], // Clay to Sand
     headerText: "#FFFFFF",
     background: "#FDFBF7", // Cream/Sand
-    summaryTitle: "#FFFFFF",
+    summaryTitle: "#FDFBF7",
     summaryLabel: "#8D7A6D",
     summaryValue: "#5D4037",
     timeline: {
@@ -46,8 +46,10 @@ export const Colors = {
       ],
     },
     alert: {
-      background: "#E07A5F",
-      text: "#FFFFFF",
+      background: "#FFEBEE", // "#E07A5F",
+      text: "#E07A5F",
+      iconBackground: "#E07A5F",
+      icon: "white",
     },
   },
   baby: {
