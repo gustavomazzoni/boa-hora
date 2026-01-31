@@ -7,7 +7,7 @@ import Summary from "@/components/summary";
 import TimerButton from "@/components/timer-button";
 import Card from "@/components/ui/card";
 import { getThemeColors } from "@/constants/theme";
-import { formatDuration } from "@/helpers/time";
+import { formatDuration, formatTime } from "@/helpers/time";
 import {
   Contraction,
   createContraction,
@@ -117,10 +117,14 @@ export default function App() {
   };
 
   // --- LOGIC: Delete Contraction ---
-  const handleDeleteContraction = (id: string, duration: number) => {
+  const handleDeleteContraction = (
+    id: string,
+    startTime: string,
+    duration: number,
+  ) => {
     Alert.alert(
       "Excluir Contração",
-      `Deseja excluir a contração de ${formatDuration(duration)}?`,
+      `Deseja excluir a contração das ${formatTime(startTime)}h de ${formatDuration(duration)} min?`,
       [
         { text: "Cancelar", style: "cancel" },
         {

@@ -11,7 +11,11 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   contractions: Contraction[];
-  onDeleteContraction: (id: string, duration: number) => void;
+  onDeleteContraction: (
+    id: string,
+    startTime: string,
+    duration: number,
+  ) => void;
 };
 
 export default function ContractionsList({
@@ -71,7 +75,9 @@ export default function ContractionsList({
         {!isBreak(index) && <View style={styles.line} />}
 
         <Pressable
-          onLongPress={() => onDeleteContraction(item.id, item.duration)}
+          onLongPress={() =>
+            onDeleteContraction(item.id, item.startTime, item.duration)
+          }
           style={({ pressed }) => [
             styles.circle,
             pressed && styles.circlePressed,
