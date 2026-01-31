@@ -28,3 +28,11 @@
 6. [ ] Mark Contractions matching "5-1-1 rule" pattern:
        User sees contractions logs that match the 5-1-1 rule pattern marked in red.
        UI: User sees the duration circle of each contraction matching the 5-1-1 rule pattern in red (instead of green).
+
+7. [x] Summary Stats ("Resumo da Última Hora"):
+       The logic should not look at a single contraction, but at a 60-minute Sliding Window.
+   - Number of Contractions: Quantity of contractions in the last 60 minutes.
+   - Average Duration (Sustained): Average duration of contractions in the last 60 minutes. If the average rises from 40s to 60s, the uterus is becoming more powerful.
+   - Average Frequency (Interval): Average interval between contractions in the last 60 minutes. This shows the speed of labor.
+   - Consistency (Regularity Index): The standard deviation of the Frequency in the last 60 min. If the intervals are 5, 6, 5, 4, 5 min (< 1 min), the app says: "Rítmico" (PT-BR). If it is 10, 3, 15, 2 min (> 1 min), the app says: "Irregular".
+     Write an unit test to ensure the logic works and covers edge cases if possible.

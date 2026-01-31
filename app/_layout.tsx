@@ -1,19 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
+import { getThemeColors } from "@/constants/theme";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import "react-native-reanimated";
 
 export default function RootLayout() {
-  const HeaderRightIcon = () => (
-    <Pressable
-      onPress={() => alert("Star icon pressed!")}
-      style={styles.iconButton}
-    >
-      <Ionicons name="information-circle-outline" size={24} color="#34D399" />
-    </Pressable>
-  );
-
   return (
     <>
       <StatusBar style="light" />
@@ -28,7 +19,6 @@ export default function RootLayout() {
           name="index"
           options={{
             title: "BoaHora | Monitore suas Contrações",
-            // headerRight: () => <HeaderRightIcon />,
           }}
         />
       </Stack>
@@ -36,13 +26,15 @@ export default function RootLayout() {
   );
 }
 
+const themeColors = getThemeColors();
+
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#6EE7B7", //, "#34D399"],
+    backgroundColor: themeColors.headerGradient[0], // "#C8AD9E", // "#D4A5A5", // "#6EE7B7", //, "#34D399"],
     borderBottomWidth: 0,
   },
   headerTitle: {
-    color: "white",
+    color: themeColors.headerText, // "white", //"#6B705C",
     // fontSize: 18,
     fontWeight: "bold",
     // letterSpacing: 1,
