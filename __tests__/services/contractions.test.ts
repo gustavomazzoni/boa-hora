@@ -3,6 +3,8 @@ import {
   countLastHourContractions,
   createContraction,
   getEffectiveDuration,
+  getLastHourContractions,
+  getLastHourSummary,
   shouldAutoStop,
   Contraction,
   MAX_CONTRACTION_DURATION_SECONDS,
@@ -436,5 +438,309 @@ describe("shouldAutoStop", () => {
 describe("MAX_CONTRACTION_DURATION_SECONDS", () => {
   it("should be 90 seconds", () => {
     expect(MAX_CONTRACTION_DURATION_SECONDS).toBe(90);
+  });
+});
+
+describe("getLastHourContractions", () => {
+  const NOW = new Date("2024-01-15T12:00:00.000Z");
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("should return only contractions within the last 60 minutes", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:30:00.000Z", // 30 mins ago
+        endTime: "2024-01-15T11:31:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:00:00.000Z", // 60 mins ago
+        endTime: "2024-01-15T11:01:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T10:59:00.000Z", // 61 mins ago
+        endTime: "2024-01-15T11:00:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourContractions(contractions);
+
+    expect(result).toHaveLength(2);
+    expect(result.map((c) => c.id)).toEqual(["1", "2"]);
+  });
+
+  it("should return empty array for empty input", () => {
+    const result = getLastHourContractions([]);
+
+    expect(result).toEqual([]);
+  });
+
+  it("should include contraction at exactly 60 minutes ago", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:00:00.000Z", // exactly 60 mins ago
+        endTime: "2024-01-15T11:01:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourContractions(contractions);
+
+    expect(result).toHaveLength(1);
+  });
+
+  it("should exclude contraction at 61 minutes ago", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T10:59:00.000Z", // 61 mins ago
+        endTime: "2024-01-15T11:00:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourContractions(contractions);
+
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("getLastHourSummary", () => {
+  const NOW = new Date("2024-01-15T12:00:00.000Z");
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("should return all nulls for 0 contractions", () => {
+    const result = getLastHourSummary([]);
+
+    expect(result).toEqual({
+      count: 0,
+      avgDuration: null,
+      avgFrequency: null,
+      regularity: null,
+    });
+  });
+
+  it("should return count and avgDuration for 1 contraction", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:50:00.000Z",
+        endTime: "2024-01-15T11:51:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.count).toBe(1);
+    expect(result.avgDuration).toBe(60);
+    expect(result.avgFrequency).toBeNull();
+    expect(result.regularity).toBeNull();
+  });
+
+  it("should return count, avgDuration, and avgFrequency for 2 contractions", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:55:00.000Z",
+        endTime: "2024-01-15T11:56:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:50:00.000Z",
+        endTime: "2024-01-15T11:50:45.000Z",
+        duration: 45,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.count).toBe(2);
+    expect(result.avgDuration).toBe(53); // round((60+45)/2) = 52.5 -> 53
+    expect(result.avgFrequency).toBe(300); // 5 minutes = 300 seconds
+    expect(result.regularity).toBeNull();
+  });
+
+  it("should return all stats for 3+ regular contractions", () => {
+    // 4 contractions, 5 minutes apart each
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:55:00.000Z",
+        endTime: "2024-01-15T11:56:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:50:00.000Z",
+        endTime: "2024-01-15T11:51:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T11:45:00.000Z",
+        endTime: "2024-01-15T11:46:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "4",
+        startTime: "2024-01-15T11:40:00.000Z",
+        endTime: "2024-01-15T11:41:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.count).toBe(4);
+    expect(result.avgDuration).toBe(60);
+    expect(result.avgFrequency).toBe(300); // 5 min intervals
+    expect(result.regularity).not.toBeNull();
+    expect(result.regularity!.label).toBe("Rítmico");
+    expect(result.regularity!.stdDevSeconds).toBe(0); // identical intervals
+  });
+
+  it("should return Irregular for 3+ irregular contractions", () => {
+    // Intervals: 2min, 10min, 3min -> very irregular
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:55:00.000Z",
+        endTime: "2024-01-15T11:56:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:53:00.000Z", // 2 min before id:1
+        endTime: "2024-01-15T11:54:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T11:43:00.000Z", // 10 min before id:2
+        endTime: "2024-01-15T11:44:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "4",
+        startTime: "2024-01-15T11:40:00.000Z", // 3 min before id:3
+        endTime: "2024-01-15T11:41:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.count).toBe(4);
+    expect(result.regularity).not.toBeNull();
+    expect(result.regularity!.label).toBe("Irregular");
+    expect(result.regularity!.stdDevSeconds).toBeGreaterThanOrEqual(60);
+  });
+
+  it("should only count contractions within the 60-minute window", () => {
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:50:00.000Z", // 10 min ago - in window
+        endTime: "2024-01-15T11:51:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T10:00:00.000Z", // 2 hours ago - out of window
+        endTime: "2024-01-15T10:01:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.count).toBe(1);
+    expect(result.avgDuration).toBe(60);
+    expect(result.avgFrequency).toBeNull(); // only 1 in window
+  });
+
+  it("should return Irregular when std dev is exactly 60 seconds", () => {
+    // Need intervals whose population std dev = exactly 60s
+    // Mean = 300, intervals = [300-60, 300+60] = [240, 360]
+    // stddev = sqrt(((240-300)^2 + (360-300)^2) / 2) = sqrt((3600+3600)/2) = sqrt(3600) = 60
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:50:00.000Z",
+        endTime: "2024-01-15T11:51:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:46:00.000Z", // 240s before id:1
+        endTime: "2024-01-15T11:47:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T11:40:00.000Z", // 360s before id:2
+        endTime: "2024-01-15T11:41:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.regularity).not.toBeNull();
+    expect(result.regularity!.stdDevSeconds).toBe(60);
+    expect(result.regularity!.label).toBe("Irregular");
+  });
+
+  it("should return Rítmico with identical intervals (std dev = 0)", () => {
+    // 3 contractions, all exactly 5 minutes apart
+    const contractions: Contraction[] = [
+      {
+        id: "1",
+        startTime: "2024-01-15T11:50:00.000Z",
+        endTime: "2024-01-15T11:51:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "2",
+        startTime: "2024-01-15T11:45:00.000Z",
+        endTime: "2024-01-15T11:46:00.000Z",
+        duration: 60,
+      },
+      {
+        id: "3",
+        startTime: "2024-01-15T11:40:00.000Z",
+        endTime: "2024-01-15T11:41:00.000Z",
+        duration: 60,
+      },
+    ];
+
+    const result = getLastHourSummary(contractions);
+
+    expect(result.regularity).not.toBeNull();
+    expect(result.regularity!.stdDevSeconds).toBe(0);
+    expect(result.regularity!.label).toBe("Rítmico");
   });
 });

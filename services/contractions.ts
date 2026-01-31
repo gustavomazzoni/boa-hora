@@ -82,11 +82,81 @@ export const deleteContraction = (
   return contractions.filter((c) => c.id !== id);
 };
 
-export const countLastHourContractions = (
+export const getLastHourContractions = (
   contractions: Contraction[],
-): number => {
+): Contraction[] => {
   return contractions.filter((c) => {
     const diff = getDiffMinutes(new Date().toISOString(), c.startTime);
     return diff <= 60;
-  }).length;
+  });
+};
+
+export const countLastHourContractions = (
+  contractions: Contraction[],
+): number => {
+  return getLastHourContractions(contractions).length;
+};
+
+export interface RegularityResult {
+  label: string;
+  stdDevSeconds: number;
+}
+
+export interface SummaryStats {
+  count: number;
+  avgDuration: number | null;
+  avgFrequency: number | null;
+  regularity: RegularityResult | null;
+}
+
+export const getLastHourSummary = (
+  contractions: Contraction[],
+): SummaryStats => {
+  const recent = getLastHourContractions(contractions);
+  const count = recent.length;
+
+  if (count === 0) {
+    return { count: 0, avgDuration: null, avgFrequency: null, regularity: null };
+  }
+
+  // Average duration (seconds)
+  const totalDuration = recent.reduce((sum, c) => sum + c.duration, 0);
+  const avgDuration = Math.round(totalDuration / count);
+
+  // Intervals between consecutive contractions (sorted newest-first)
+  // Sort by startTime descending to ensure correct ordering
+  const sorted = [...recent].sort(
+    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+  );
+
+  let avgFrequency: number | null = null;
+  let regularity: RegularityResult | null = null;
+
+  if (count >= 2) {
+    const intervals: number[] = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const diffMs =
+        new Date(sorted[i].startTime).getTime() -
+        new Date(sorted[i + 1].startTime).getTime();
+      intervals.push(diffMs / 1000);
+    }
+
+    const totalInterval = intervals.reduce((sum, v) => sum + v, 0);
+    avgFrequency = Math.round(totalInterval / intervals.length);
+
+    // Regularity requires >= 3 contractions (2+ intervals)
+    if (intervals.length >= 2) {
+      const mean = totalInterval / intervals.length;
+      const variance =
+        intervals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / intervals.length;
+      const stdDev = Math.sqrt(variance);
+
+      regularity = {
+        label: stdDev < 60 ? "Rítmico" : "Irregular",
+        stdDevSeconds: stdDev,
+      };
+    }
+  }
+
+  return { count, avgDuration, avgFrequency, regularity };
 };
