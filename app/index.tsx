@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient"; // Standard in Expo
 import React, { useEffect, useState } from "react";
-import { Alert, Dimensions, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 import ContractionsList from "@/components/contractions-list";
 import Summary from "@/components/summary";
@@ -159,10 +159,12 @@ export default function App() {
   // );
 
   const renderStatusCard = () => {
+    // if (true) {
     if (hospitalAlert) {
       return (
         <Card type="alert">
-          Padrão 5-1-1 Detectado!{"\n"}Contrações a cada 5 min por 1 hora.
+          Padrão 5-1-1 Detectado!{"\n"}Contrações de 1 min a cada 5 min por 1
+          hora.
           {"\n"}Hora de ligar para seu médico e ir para o hospital.
         </Card>
       );
@@ -176,7 +178,6 @@ export default function App() {
         </Card>
       );
     }
-
     return <Summary contractions={contractions} />;
   };
 
@@ -185,10 +186,6 @@ export default function App() {
       {/* Green Header Background */}
       <LinearGradient
         colors={themeColors.headerGradient}
-        // colors={["#D4A5A5", "#C08585"]}
-        // colors={["#6EE7B7", "#34D399"]}
-        // colors={["#C6C1D2", "#F3EFE6"]}
-        // colors={["#CFA5A5", "#C6C1D2"]} /*C6C1D2*/
         style={styles.topContainer}
       >
         <View style={styles.contentContainer}>{renderStatusCard()}</View>
@@ -214,7 +211,7 @@ export default function App() {
 
 // --- STYLES ---
 
-const { width } = Dimensions.get("window");
+// const { width } = Dimensions.get("window");
 
 const themeColors = getThemeColors();
 

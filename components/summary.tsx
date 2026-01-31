@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     color: themeColors.summaryTitle,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 10,
   },

@@ -136,9 +136,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   emptyListText: {
-    color: themeColors.timeline.frequencyText, // "#5D4037", // "#009688",
+    color: themeColors.timeline.columnLabel, // "#5D4037", // "#009688",
     textAlign: "center",
     fontSize: 14,
+    fontWeight: "600",
     lineHeight: 20,
     marginTop: 15,
   },
